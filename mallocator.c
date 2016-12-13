@@ -1,7 +1,15 @@
+#include "mallocator_utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <string.h>
+#include <sys/types.h>
+//#include <sys/kmem.h>
+//#include <sys/driver.h>
+//#include <driver.h>
+//void *kmem_alloc(size_t size, int flag);
+//void *kmem_zalloc(size_t size, int flag);
+//void kmem_free(void*buf, size_t size);
+
 
 // 50 MiB
 const size_t DEFAULT_CHUNK_SIZE = 50<<20;
@@ -11,8 +19,6 @@ const useconds_t DEFAULT_SLEEP_TIME = 0;
 
 
 int main(int argc, const char* argv[]) {
-	int i = 0;
-
 	if (argc <= 1 || argc > 5) {
 		printf("usage: mallocator TOTAL_ALLOC_SIZE [CHUNK_SIZE=50MiB] [USEC_SLEEP_BETWEEN_CHUNKS=1000000]\n");
 		return -1;
@@ -22,6 +28,8 @@ int main(int argc, const char* argv[]) {
 	size_t chunk_size = DEFAULT_CHUNK_SIZE;
 	size_t sleep_time = DEFAULT_SLEEP_TIME;
 	size_t ongoing = 0;
+	MemoryAllocNode* node = NULL;
+	MemoryAllocNode* tmp = NULL;
 
 	if (argc > 2) {
 		chunk_size = atoi(argv[2])<<20;
@@ -36,25 +44,18 @@ int main(int argc, const char* argv[]) {
 
 	
 
-	while(ongoing < total) {
-		size_t size = chunk_size;
-		ongoing += size;
-		if (ongoing > total) {
-			printf("last allocation size=%lu total=%lu ongoing=%lu\n", size, total, ongoing);
-			ongoing -= size;
-			size = total - ongoing;
-			ongoing += size;
-			printf("adjusting last allocation to %lu\n", size);
-		} else {
-			i++;
-		}
-		void* ptr = malloc(size);
-		memset(ptr, i&0xffff, size);
-		printf("allocated ptr=0x%p size=%lu, total MiB=%lu\n", ptr, size, ongoing>>20);
-		usleep(sleep_time);
+	
+	node = mallocate(total, chunk_size, sleep_time, malloc, free);
+	
+	tmp = node;
+	while (tmp) {
+		printf("size=%lu ptr=%p\n", tmp->size, tmp->ptr);
+		tmp = tmp->next;
 	}
 
-	
+	mfree(node, free);
+
+
 	while (1) {
 		usleep(sleep_time);
 	}
