@@ -3,19 +3,20 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
-//#include <sys/kmem.h>
-//#include <sys/driver.h>
-//#include <driver.h>
-//void *kmem_alloc(size_t size, int flag);
-//void *kmem_zalloc(size_t size, int flag);
-//void kmem_free(void*buf, size_t size);
 
 
 // 50 MiB
-const size_t DEFAULT_CHUNK_SIZE = 50<<20;
-// 1 sec
-//const useconds_t DEFAULT_SLEEP_TIME = 1000000;
+const unsigned long DEFAULT_CHUNK_SIZE = 50<<20;
 const useconds_t DEFAULT_SLEEP_TIME = 0;
+
+
+static void* alloc_func(unsigned long size) {
+	return malloc(size);
+}
+
+static void free_func(void *ptr) {
+	free(ptr);
+}
 
 
 int main(int argc, const char* argv[]) {
@@ -24,10 +25,10 @@ int main(int argc, const char* argv[]) {
 		return -1;
 	}
 
-	size_t total = atoi(argv[1])<<20;
-	size_t chunk_size = DEFAULT_CHUNK_SIZE;
-	size_t sleep_time = DEFAULT_SLEEP_TIME;
-	size_t ongoing = 0;
+	unsigned long total = atoi(argv[1])<<20;
+	unsigned long chunk_size = DEFAULT_CHUNK_SIZE;
+	unsigned long sleep_time = DEFAULT_SLEEP_TIME;
+	unsigned long ongoing = 0;
 	MemoryAllocNode* node = NULL;
 	MemoryAllocNode* tmp = NULL;
 
@@ -45,7 +46,7 @@ int main(int argc, const char* argv[]) {
 	
 
 	
-	node = mallocate(total, chunk_size, sleep_time, malloc, free);
+	node = mallocator_mallocate(total, chunk_size, sleep_time, alloc_func, free_func);
 	
 	tmp = node;
 	while (tmp) {
@@ -53,10 +54,11 @@ int main(int argc, const char* argv[]) {
 		tmp = tmp->next;
 	}
 
-	mfree(node, free);
-
 
 	while (1) {
 		usleep(sleep_time);
 	}
+
+	mallocator_mfree(node, free);
+
 }

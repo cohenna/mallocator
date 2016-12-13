@@ -2,19 +2,29 @@
 
 #ifdef USER_LAND
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #define SLEEP usleep
 #define PRINT(...) printf(__VA_ARGS__)
+
+static void get_random_bytes(void *vbuf, int nbytes) {
+	unsigned char *buf = (unsigned char*)vbuf;
+	int i = 0;
+	for(;i < nbytes; i++) {
+		buf[i] = rand();
+	}
+}
+
 #else
 #include <linux/string.h>
 #include <linux/delay.h>
+//#include <linux/random.h>
+extern void get_random_bytes(void *buf, int nbytes);
 #define SLEEP msleep
 #define PRINT printk
 #define USER_LAND 0
 #endif
 
-
-static unsigned long mask = 0;
 static MemoryAllocNode* do_alloc(unsigned long size, void* (*alloc_func)(unsigned long), void (*free_func)(void*)) {
 	void* ptr = NULL;
 	MemoryAllocNode* node = alloc_func(sizeof(MemoryAllocNode));
@@ -24,8 +34,7 @@ static MemoryAllocNode* do_alloc(unsigned long size, void* (*alloc_func)(unsigne
 
 	ptr = alloc_func(size);
 	if (ptr) {
-		memset(ptr, mask&0xffff, size);
-		mask++;
+		get_random_bytes(ptr, size);
 		PRINT("allocated ptr=0x%p size=%lu\n", ptr, size);
 		node->ptr = ptr;
 		node->size = size;
@@ -40,7 +49,7 @@ static MemoryAllocNode* do_alloc(unsigned long size, void* (*alloc_func)(unsigne
 }
 
 
-void mfree(MemoryAllocNode* node, void (*free_func)(void*)) {
+void mallocator_mfree(struct MemoryAllocNode* node, void (*free_func)(void*)) {
 	MemoryAllocNode* current = node;
 	MemoryAllocNode* tmp = NULL;
 	while(current) {
@@ -55,7 +64,7 @@ void mfree(MemoryAllocNode* node, void (*free_func)(void*)) {
 	}
 }
 
-MemoryAllocNode* mallocate(unsigned long total_size, unsigned long chunk_size, unsigned long millisecond_delay, void* (*alloc_func)(unsigned long), void (*free_func)(void*)) {
+MemoryAllocNode* mallocator_mallocate(unsigned long total_size, unsigned long chunk_size, unsigned long millisecond_delay, void* (*alloc_func)(unsigned long), void (*free_func)(void*)) {
 	unsigned long ongoing = 0;
 	int i = 0;
 	MemoryAllocNode *head = NULL;

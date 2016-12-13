@@ -9,7 +9,7 @@ typedef struct MemoryAllocNode {
 } MemoryAllocNode;
 
 
-extern MemoryAllocNode* mallocate(unsigned long total_size, unsigned long chunk_size, unsigned long millisecond_delay, void* (*alloc_func)(unsigned long), void (*free_func)(void*));
-extern void mfree(MemoryAllocNode* node, void (*free_func)(void*));
+extern MemoryAllocNode* mallocator_mallocate(unsigned long total_size, unsigned long chunk_size, unsigned long millisecond_delay, void* (*alloc_func)(unsigned long), void (*free_func)(void*));
+extern void mallocator_mfree(MemoryAllocNode* node, void (*free_func)(void*));
 
 #endif

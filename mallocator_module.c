@@ -7,8 +7,8 @@
 #include "mallocator_utils.h"
 
 
-static size_t total_alloc_size = 0;
-static size_t chunk_size = 256<<20;
+static unsigned long total_alloc_size = 0;
+static unsigned long chunk_size = 256;
 static long millisecond_delay = 0;
 
 module_param(total_alloc_size, long, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
@@ -21,7 +21,7 @@ MODULE_PARM_DESC(millisecond_delay, "Delay in ms between KMEM chunk allocations.
 static MemoryAllocNode *node = NULL;
 
 
-static void* alloc(size_t size) {
+static void* alloc(unsigned long size) {
 	return kmalloc(size, __GFP_NORETRY);
 }
 
@@ -33,13 +33,15 @@ static int __init mallocator_init(void)
 {
 	printk("mallocator module init success\n");
 	printk("mallocator module total_alloc_size=%lu chunk_size=%lu millisecond_delay=%lu\n", total_alloc_size, chunk_size, millisecond_delay);
-	node = mallocate(total_alloc_size, chunk_size, millisecond_delay, alloc, free_func);
+	total_alloc_size <<= 20;
+	chunk_size <<= 20;
+	node = mallocator_mallocate(total_alloc_size, chunk_size, millisecond_delay, alloc, free_func);
 	return 0;
 }
 
 static void __exit mallocator_exit(void)
 {
-	mfree(node, free_func);
+	mallocator_mfree(node, free_func);
 	printk(KERN_ALERT "mallocator module cleanup finished\n");
 }  
 
